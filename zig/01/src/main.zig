@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub fn main() !void {
-    var file = try std.fs.cwd().openFile("input.txt", .{});
+    var file = try std.fs.cwd().openFile("src/input.txt", .{});
     defer file.close();
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
