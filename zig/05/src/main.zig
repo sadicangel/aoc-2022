@@ -24,6 +24,7 @@ fn print(stacks: std.ArrayList(std.ArrayList(u8))) !void {
 }
 
 pub fn main() !void {
+    const move1by1 = false;
     const content = @embedFile("input.txt");
     var readIter = std.mem.tokenize(u8, content, "\n");
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -70,10 +71,19 @@ pub fn main() !void {
         //std.debug.print("move {} from {} to {}\n", .{ count, fromIndex, toIndex });
         var from: std.ArrayList(u8) = stacks.items[fromIndex];
         var to: std.ArrayList(u8) = stacks.items[toIndex];
-        for (range(count)) |_| {
-            const box = from.orderedRemove(from.items.len - 1);
-            std.debug.print("move {c} from {} to {}\n", .{ box, fromIndex, toIndex });
-            try to.append(box);
+        if (move1by1) {
+            for (range(count)) |_| {
+                const box = from.orderedRemove(from.items.len - 1);
+                std.debug.print("move {c} from {} to {}\n", .{ box, fromIndex, toIndex });
+                try to.append(box);
+            }
+        } else {
+            var temp = std.ArrayList(u8).init(gpa.allocator());
+            defer temp.deinit();
+            for (range(count)) |_| {
+                try temp.insert(0, from.orderedRemove(from.items.len - 1));
+            }
+            try to.appendSlice(temp.items);
         }
         stacks.items[fromIndex] = from;
         stacks.items[toIndex] = to;
