@@ -14,12 +14,23 @@ pub fn main() !void {
     const content = @embedFile("input.txt");
     var i: usize = 0;
     var j: usize = 4;
+    var k: usize = 14;
+    var packetEnd: usize = 0;
+    var messageEnd: usize = 0;
     while (j < content.len) {
         std.debug.print("{s}\n", .{content[i..j]});
-        if (areUnique(content[i..j]))
-            break;
+        if (packetEnd == 0 and areUnique(content[i..j])) {
+            packetEnd = j;
+        }
+        if (messageEnd == 0 and areUnique(content[i..k])) {
+            messageEnd = k;
+        }
         i += 1;
         j += 1;
+        k += 1;
+        if (packetEnd != 0 and messageEnd != 0)
+            break;
     }
-    std.debug.print("Last index of unique 4 word: {}\n", .{j});
+    std.debug.print("Last index of unique 4 word: {}\n", .{packetEnd});
+    std.debug.print("Last index of unique 14 word: {}\n", .{messageEnd});
 }
