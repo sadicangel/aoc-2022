@@ -1,12 +1,12 @@
 const std = @import("std");
 
 fn areUnique(slice: []const u8) bool {
-    if (slice[0] == slice[1] or slice[0] == slice[2] or slice[0] == slice[3])
-        return false;
-    if (slice[1] == slice[2] or slice[1] == slice[3])
-        return false;
-    if (slice[2] == slice[3])
-        return false;
+    for (slice) |n1, i| {
+        for (slice[i + 1 ..]) |n2| {
+            if (n1 == n2)
+                return false;
+        }
+    }
     return true;
 }
 
