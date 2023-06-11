@@ -38,7 +38,7 @@ const Entry = struct {
 
     pub fn print(self: *Entry, allocator: std.mem.Allocator, indent: []u8) !void {
         if (self.isDir) {
-            std.debug.print("{s}d {s}\n", .{ indent, self.name });
+            std.debug.print("{s}d {s} ({})\n", .{ indent, self.name, self.length });
             var array = std.ArrayList(u8).init(allocator);
             defer array.deinit();
             try array.appendNTimes(' ', indent.len + 2);
@@ -51,15 +51,40 @@ const Entry = struct {
     }
 
     pub fn computeLength(self: *Entry) usize {
-        var length: usize = 0;
         if (self.isDir) {
+            self.length = 0;
             for (self.children.items) |child| {
-                length += child.computeLength();
+                self.length += child.computeLength();
             }
-        } else {
-            length = self.length;
         }
-        return length;
+        return self.length;
+    }
+
+    pub fn computeProblem1(self: *Entry) usize {
+        var sum: usize = 0;
+        if (self.isDir) {
+            if (self.length <= 100000)
+                sum += self.length;
+            for (self.children.items) |child| {
+                sum += child.computeProblem1();
+            }
+        }
+        return sum;
+    }
+
+    pub fn computeProblem2(self: *Entry, requiredSpace: usize, min: *usize, size: *usize) void {
+        if (self.isDir) {
+            if (requiredSpace < self.length) {
+                const m = self.length - requiredSpace;
+                if (m < min.*) {
+                    min.* = m;
+                    size.* = self.length;
+                }
+            }
+            for (self.children.items) |child| {
+                child.computeProblem2(requiredSpace, min, size);
+            }
+        }
     }
 };
 
@@ -69,12 +94,12 @@ pub fn main() !void {
     root.parent = root;
     var cwd = root;
     const content = @embedFile("input.txt");
-    var readIter = std.mem.tokenize(u8, content, "\n");
+    var readIter = std.mem.tokenize(u8, content, "\r\n");
     while (readIter.next()) |line| {
         if (std.mem.startsWith(u8, line, "$ cd")) {
-            if (std.mem.eql(u8, line, "$ cd /")) {
+            if (std.mem.startsWith(u8, line, "$ cd /")) {
                 cwd = root;
-            } else if (std.mem.eql(u8, line, "$ cd ..")) {
+            } else if (std.mem.startsWith(u8, line, "$ cd ..")) {
                 cwd = cwd.parent;
             } else {
                 var dirNameIter = std.mem.tokenize(u8, line, " ");
@@ -89,14 +114,14 @@ pub fn main() !void {
                     cwd = try cwd.add(gpa.allocator(), dirName, true, 0);
                 }
             }
-            std.debug.print("cd '{s}'\n", .{cwd.name});
+            //std.debug.print("cd '{s}'\n", .{cwd.name});
         } else if (std.mem.startsWith(u8, line, "$ ls")) {
-            std.debug.print("ls '{s}'\n", .{cwd.name});
+            //std.debug.print("ls '{s}'\n", .{cwd.name});
         } else if (std.mem.startsWith(u8, line, "dir")) {
             var dirNameIter = std.mem.tokenize(u8, line, " ");
             _ = dirNameIter.next();
             const dirName = dirNameIter.next().?;
-            std.debug.print("mkdir '{s}'\n", .{dirName});
+            //std.debug.print("mkdir '{s}'\n", .{dirName});
             const optionalEntry = cwd.find(dirName);
             if (optionalEntry == null) {
                 _ = try cwd.add(gpa.allocator(), dirName, true, 0);
@@ -109,9 +134,26 @@ pub fn main() !void {
             if (optionalEntry == null) {
                 _ = try cwd.add(gpa.allocator(), fileName, false, fileSize);
             }
-            std.debug.print("mk '{s}'\n", .{fileName});
+            //std.debug.print("mk '{s}'\n", .{fileName});
         }
     }
 
-    try root.print(gpa.allocator(), "");
+    const rootSize = root.computeLength();
+
+    std.debug.print("Disk space: {}/{}\n", .{ 70000000 - rootSize, rootSize });
+
+    const sizeSum = root.computeProblem1();
+
+    std.debug.print("Sum of sizes of directories with size less or equal to 100000: {}\n", .{sizeSum});
+
+    const requiredSpace = 30000000 - (70000000 - rootSize);
+
+    std.debug.print("Required space: {}\n", .{requiredSpace});
+
+    // Problem 2.
+    var min: usize = 0xffff_ffff_ffff_ffff;
+    var size: usize = 0;
+    root.computeProblem2(requiredSpace, &min, &size);
+
+    std.debug.print("Smallest directory to remove has size: {}\n", .{size});
 }
